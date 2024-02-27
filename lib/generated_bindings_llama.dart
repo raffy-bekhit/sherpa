@@ -175,10 +175,19 @@ class NativeLibrary {
       _lookup<ffi.NativeFunction<ffi.UintPtr Function()>>('__threadhandle');
   late final ___threadhandle = ___threadhandlePtr.asFunction<int Function()>();
 
+  llama_model_params llama_model_default_params() {
+    return _llama_model_default_params();
+  }
+
+  late final _llama_model_default_paramsPtr =
+        _lookup<ffi.NativeFunction<llama_model_params Function()>>(
+          'llama_model_default_params');
+  late final _llama_model_default_params = _llama_model_default_paramsPtr
+      .asFunction<llama_model_params Function()>();
+
   llama_context_params llama_context_default_params() {
     return _llama_context_default_params();
   }
-
   late final _llama_context_default_paramsPtr =
       _lookup<ffi.NativeFunction<llama_context_params Function()>>(
           'llama_context_default_params');
@@ -203,23 +212,57 @@ class NativeLibrary {
   late final _llama_mlock_supported =
       _llama_mlock_supportedPtr.asFunction<bool Function()>();
 
-  ffi.Pointer<llama_context> llama_init_from_file(
+  ffi.Pointer<llama_model> llama_load_model_from_file(
     ffi.Pointer<ffi.Char> path_model,
-    llama_context_params params,
+    llama_model_params params,
   ) {
-    return _llama_init_from_file(
+    return _llama_load_model_from_file(
       path_model,
       params,
     );
   }
+  ffi.Pointer<llama_context> llama_new_context_with_model(
+    ffi.Pointer<llama_model> model,
+    llama_context_params params,
+  ) {
+    return _llama_new_context_with_model(
+      model,
+      params,
+    );
+  }
 
-  late final _llama_init_from_filePtr = _lookup<
+  late final _llama_load_model_from_filePtr = _lookup<
       ffi.NativeFunction<
-          ffi.Pointer<llama_context> Function(ffi.Pointer<ffi.Char>,
-              llama_context_params)>>('llama_init_from_file');
-  late final _llama_init_from_file = _llama_init_from_filePtr.asFunction<
+          ffi.Pointer<llama_model> Function(ffi.Pointer<ffi.Char>,
+              llama_model_params)>>('llama_load_model_from_file');
+  late final _llama_load_model_from_file = _llama_load_model_from_filePtr.asFunction<
+      ffi.Pointer<llama_model> Function(
+          ffi.Pointer<ffi.Char>, llama_model_params)>();
+
+  late final _llama_new_context_with_modelPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<llama_context> Function(ffi.Pointer<llama_model>,
+              llama_context_params)>>('llama_new_context_with_model');
+  late final _llama_new_context_with_model = _llama_new_context_with_modelPtr.asFunction<
       ffi.Pointer<llama_context> Function(
-          ffi.Pointer<ffi.Char>, llama_context_params)>();
+          ffi.Pointer<llama_model>, llama_context_params)>();
+
+  // ffi.Pointer<llama_context> llama_init_from_file(
+  //   ffi.Pointer<ffi.Char> path_model,
+  //   llama_context_params params,
+  // ) {
+  //   return _llama_init_from_file(
+  //     path_model,
+  //     params,
+  //   );
+  // }
+  // late final _llama_init_from_filePtr = _lookup<
+  //     ffi.NativeFunction<
+  //         ffi.Pointer<llama_context> Function(ffi.Pointer<ffi.Char>,
+  //             llama_context_params)>>('llama_load_model_from_file');
+  // late final _llama_init_from_file = _llama_init_from_filePtr.asFunction<
+  //     ffi.Pointer<llama_context> Function(
+  //         ffi.Pointer<ffi.Char>, llama_context_params)>();
 
   void llama_free(
     ffi.Pointer<llama_context> ctx,
@@ -665,6 +708,7 @@ class gpt_params extends ffi.Struct {
 }
 
 class llama_context extends ffi.Opaque {}
+class llama_model extends ffi.Opaque {}
 
 class llama_token_data extends ffi.Struct {
   @llama_token()
@@ -679,21 +723,78 @@ class llama_token_data extends ffi.Struct {
 
 typedef llama_token = ffi.Int;
 
-class llama_context_params extends ffi.Struct {
+// class llama_context_params extends ffi.Struct {
+//   @ffi.Int()
+//   external int n_ctx;
+
+//   @ffi.Int()
+//   external int n_parts;
+
+//   @ffi.Int()
+//   external int seed;
+
+//   @ffi.Bool()
+//   external bool f16_kv;
+
+//   @ffi.Bool()
+//   external bool logits_all;
+
+//   @ffi.Bool()
+//   external bool vocab_only;
+
+//   @ffi.Bool()
+//   external bool use_mmap;
+
+//   @ffi.Bool()
+//   external bool use_mlock;
+
+//   @ffi.Bool()
+//   external bool embedding;
+
+//   external llama_progress_callback progress_callback;
+
+//   external ffi.Pointer<ffi.Void> progress_callback_user_data;
+// }
+
+// class ggml_backend_buffer extends ffi.Struct {
+//         external struct ggml_backend_buffer_i  iface;
+//         external ggml_backend_buffer_type_t    buft;
+//         external ggml_backend_buffer_context_t context;
+//         external int size;
+//         external ggml_backend_buffer_usage usage;
+// }
+// class ggml_backend_buffer_i extends ffi.Struct {
+
+// }
+// class ggml_tensor extends ffi.Struct {
+//   external ggml_type type;
+//   external ggml_backend_type backend;
+//   external ffi.Pointer<ggml_backend_buffer> buffer;
+// }
+abstract class llama_split_mode_ {
+  static const int LLAMA_SPLIT_NONE    = 0; // single GPU
+  static const int LLAMA_SPLIT_LAYER   = 1; // split layers and KV across GPUs
+  static const int LLAMA_SPLIT_ROW     = 2; // split rows across GPUs
+}
+class llama_kv_overrides extends ffi.Opaque {}
+
+class llama_model_params extends ffi.Struct {
   @ffi.Int()
-  external int n_ctx;
+  external int n_gpu_layers;
 
   @ffi.Int()
-  external int n_parts;
+  external int split_mode; //llama_split_mode_?
 
   @ffi.Int()
-  external int seed;
+  external int main_gpu;
 
-  @ffi.Bool()
-  external bool f16_kv;
+  external ffi.Pointer<ffi.Float> tensor_split;
 
-  @ffi.Bool()
-  external bool logits_all;
+  external llama_progress_callback progress_callback;
+
+  external ffi.Pointer<ffi.Void> progress_callback_user_data;
+
+  external ffi.Pointer<ffi.Void> kv_overrides; //llama_kv_overrides?
 
   @ffi.Bool()
   external bool vocab_only;
@@ -704,22 +805,194 @@ class llama_context_params extends ffi.Struct {
   @ffi.Bool()
   external bool use_mlock;
 
+}
+
+class llama_context_params extends ffi.Struct {
+  @ffi.Int()
+  external int seed;
+
+  @ffi.Int()
+  external int n_ctx;
+
+  @ffi.Int()
+  external int n_batch;
+
+  @ffi.Int()
+  external int n_threads;
+
+  @ffi.Int()
+  external int n_threads_batch;
+
+  @ffi.Int()
+  external int rope_scaling_type;
+
+  @ffi.Float()
+  external double rope_freq_base;
+
+  @ffi.Float()
+  external double rope_freq_scale;
+
+  @ffi.Float()
+  external double yarn_ext_factor;
+
+  @ffi.Float()
+  external double yarn_attn_factor;
+
+  @ffi.Float()
+  external double yarn_beta_fast;
+
+  @ffi.Float()
+  external double yarn_beta_slow;
+
+  @ffi.Int()
+  external int yarn_orig_ctx;
+
+  external llama_cb_eval_callback cb_eval;
+
+  external ffi.Pointer<ffi.Void> cb_eval_user_data;
+
+  @ffi.Int()
+  external int type_k;
+
+  @ffi.Int()
+  external int type_v;
+
+  @ffi.Bool()
+  external bool mul_mat_q;
+
+  @ffi.Bool()
+  external bool logits_all;
+
   @ffi.Bool()
   external bool embedding;
 
-  external llama_progress_callback progress_callback;
+  @ffi.Bool()
+  external bool offload_kqv;
 
-  external ffi.Pointer<ffi.Void> progress_callback_user_data;
+  @ffi.Bool()
+  external bool do_pooling;
 }
 
+class ggml_tensor extends ffi.Opaque {}
+typedef llama_cb_eval_callback = ffi.Pointer<
+    ffi.NativeFunction<ffi.Bool Function(ffi.Pointer<ggml_tensor>, ffi.Bool, ffi.Pointer<ffi.Void>)>>;
 typedef llama_progress_callback = ffi.Pointer<
-    ffi.NativeFunction<ffi.Void Function(ffi.Float, ffi.Pointer<ffi.Void>)>>;
+    ffi.NativeFunction<ffi.Bool Function(ffi.Float, ffi.Pointer<ffi.Void>)>>;
 
 abstract class llama_ftype {
   static const int LLAMA_FTYPE_ALL_F32 = 0;
   static const int LLAMA_FTYPE_MOSTLY_F16 = 1;
   static const int LLAMA_FTYPE_MOSTLY_Q4_0 = 2;
   static const int LLAMA_FTYPE_MOSTLY_Q4_1 = 3;
+}
+abstract class ggml_op {
+  static const int GGML_OP_NONE = 0;
+  static const int GGML_OP_DUP = 1;
+  static const int GGML_OP_ADD = 2;
+  static const int GGML_OP_ADD1 = 3;
+  static const int GGML_OP_ACC = 4;
+  static const int GGML_OP_SUB = 5;
+  static const int GGML_OP_MUL = 6;
+  static const int GGML_OP_DIV = 7;
+  static const int GGML_OP_SQR = 8;
+  static const int GGML_OP_SQRT = 9;
+  static const int GGML_OP_LOG = 10;
+  static const int GGML_OP_SUM = 11;
+  static const int GGML_OP_SUM_ROWS = 12;
+  static const int GGML_OP_MEAN = 13;
+  static const int GGML_OP_ARGMAX = 14;
+  static const int GGML_OP_REPEAT = 15;
+  static const int GGML_OP_REPEAT_BACK = 16;
+  static const int GGML_OP_CONCAT = 17;
+  static const int GGML_OP_SILU_BACK = 18;
+  static const int GGML_OP_NORM = 19; // normalize
+  static const int GGML_OP_RMS_NORM = 20;
+  static const int GGML_OP_RMS_NORM_BACK = 21;
+  static const int GGML_OP_GROUP_NORM = 22;
+  static const int GGML_OP_MUL_MAT = 23;
+  static const int GGML_OP_MUL_MAT_ID = 24;
+  static const int GGML_OP_OUT_PROD = 25;
+  static const int GGML_OP_SCALE = 26;
+  static const int GGML_OP_SET = 27;
+  static const int GGML_OP_CPY = 28;
+  static const int GGML_OP_CONT = 29;
+  static const int GGML_OP_RESHAPE = 30;
+  static const int GGML_OP_VIEW = 31;
+  static const int GGML_OP_PERMUTE = 32;
+  static const int GGML_OP_TRANSPOSE = 33;
+  static const int GGML_OP_GET_ROWS = 34;
+  static const int GGML_OP_GET_ROWS_BACK = 35;
+  static const int GGML_OP_DIAG = 36;
+  static const int GGML_OP_DIAG_MASK_INF = 37;
+  static const int GGML_OP_DIAG_MASK_ZERO = 38;
+  static const int GGML_OP_SOFT_MAX = 39;
+  static const int GGML_OP_SOFT_MAX_BACK = 40;
+  static const int GGML_OP_ROPE = 41;
+  static const int GGML_OP_ROPE_BACK = 42;
+  static const int GGML_OP_ALIBI = 43;
+  static const int GGML_OP_CLAMP = 44;
+  static const int GGML_OP_CONV_TRANSPOSE_1D = 45;
+  static const int GGML_OP_IM2COL = 46;
+  static const int GGML_OP_CONV_TRANSPOSE_2D = 47;
+  static const int GGML_OP_POOL_1D = 48;
+  static const int GGML_OP_POOL_2D = 49;
+  static const int GGML_OP_UPSCALE = 50; // nearest interpolate
+  static const int GGML_OP_PAD = 51;
+  static const int GGML_OP_ARGSORT = 52;
+  static const int GGML_OP_LEAKY_RELU = 53;
+  static const int GGML_OP_FLASH_ATTN = 54;
+  static const int GGML_OP_FLASH_FF = 55;
+  static const int GGML_OP_FLASH_ATTN_BACK = 56;
+  static const int GGML_OP_WIN_PART = 57;
+  static const int GGML_OP_WIN_UNPART = 58;
+  static const int GGML_OP_GET_REL_POS = 59;
+  static const int GGML_OP_ADD_REL_POS = 60;
+  static const int GGML_OP_UNARY = 61;
+  static const int GGML_OP_MAP_UNARY = 62;
+  static const int GGML_OP_MAP_BINARY = 63;
+  static const int GGML_OP_MAP_CUSTOM1_F32 = 64;
+  static const int GGML_OP_MAP_CUSTOM2_F32 = 65;
+  static const int GGML_OP_MAP_CUSTOM3_F32 = 66;
+  static const int GGML_OP_MAP_CUSTOM1 = 67;
+  static const int GGML_OP_MAP_CUSTOM2 = 68;
+  static const int GGML_OP_MAP_CUSTOM3 = 69;
+  static const int GGML_OP_CROSS_ENTROPY_LOSS = 70;
+  static const int GGML_OP_CROSS_ENTROPY_LOSS_BACK = 71;
+  static const int GGML_OP_COUNT = 72;
+}
+
+abstract class ggml_backend_type {
+  static const int GGML_BACKEND_CPU = 0;
+  static const int GGML_BACKEND_GPU = 10;
+  static const int GGML_BACKEND_GPU_SPLIT = 20;
+}
+
+abstract class ggml_type {
+  static const int GGML_TYPE_F32  = 0;
+  static const int GGML_TYPE_F16  = 1;
+  static const int GGML_TYPE_Q4_0 = 2;
+  static const int GGML_TYPE_Q4_1 = 3;
+  //static const int // GGML_TYPE_Q4_2 = 4, support has been removed
+  //static const int // GGML_TYPE_Q4_3 (5) support has been removed
+  static const int GGML_TYPE_Q5_0 = 6;
+  static const int GGML_TYPE_Q5_1 = 7;
+  static const int GGML_TYPE_Q8_0 = 8;
+  static const int GGML_TYPE_Q8_1 = 9;
+  //static const int // k-quantizations
+  static const int GGML_TYPE_Q2_K = 10;
+  static const int GGML_TYPE_Q3_K = 11;
+  static const int GGML_TYPE_Q4_K = 12;
+  static const int GGML_TYPE_Q5_K = 13;
+  static const int GGML_TYPE_Q6_K = 14;
+  static const int GGML_TYPE_Q8_K = 15;
+  static const int GGML_TYPE_IQ2_XXS = 16;
+  static const int GGML_TYPE_IQ2_XS  = 17;
+  static const int GGML_TYPE_IQ3_XXS = 18;
+  static const int GGML_TYPE_IQ1_S   = 19;
+  static const int GGML_TYPE_I8 = 20; //TODO add value?
+  static const int GGML_TYPE_I16 = 21;
+  static const int GGML_TYPE_I32 = 22;
+  static const int GGML_TYPE_COUNT = 23;
 }
 
 const int _VCRT_COMPILER_PREPROCESSOR = 1;
