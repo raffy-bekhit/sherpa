@@ -260,7 +260,7 @@ class Lib {
     required ParamsLlamaValuesOnly paramsLlamaValuesOnly,
   }) async {
     ByteData libAndroid = await rootBundle.load('assets/libs/libllama.so');
-    ByteData libShared = await rootBundle.load('assets/libs/libc++_shared.so');
+    // ByteData libShared = await rootBundle.load('assets/libs/libc++_shared.so');
     ByteData? libWindows;
     try {
       libWindows = await rootBundle.load('assets/libs/llama.dll');
@@ -283,7 +283,7 @@ class Lib {
         isolateSendPort?.send(ParsingDemand(
           libLinux: libLinux,
           libAndroid: libAndroid,
-          libShared: libShared,
+          // libShared: libShared,
           libWindows: libWindows,
           rootIsolateToken: token,
           promptPassed: promptPassed,
@@ -350,8 +350,8 @@ class Lib {
     BackgroundIsolateBinaryMessenger.ensureInitialized(
         parsingDemand.rootIsolateToken!);
 
-    DynamicLibrary libcxxShared = Platform.isAndroid
-    ? await loadDllAndroid("libc++.so", parsingDemand.libShared)
+    // DynamicLibrary libcxxShared = Platform.isAndroid
+    // ? await loadDllAndroid("libc++.so", parsingDemand.libShared)
     // : (Platform.isIOS
     //     ? DynamicLibrary.executable()
     //     : (Platform.isWindows
@@ -363,7 +363,7 @@ class Lib {
     //                     "libc++_shared.so", parsingDemand.libLinux!)
     //                 : DynamicLibrary.executable()))));
     // ? DynamicLibrary.open("assets/libs/libc++_shared.so")
-    : DynamicLibrary.process();
+    // : DynamicLibrary.process();
 
     DynamicLibrary llama = Platform.isAndroid
         ? await loadDllAndroid("libllama.so", parsingDemand.libAndroid)
@@ -737,7 +737,7 @@ class MessageNewPrompt {
 
 class ParsingDemand {
   ByteData libAndroid;
-  ByteData libShared;
+  // ByteData libShared;
   ByteData? libWindows;
   ByteData? libLinux;
   RootIsolateToken? rootIsolateToken;
@@ -748,7 +748,7 @@ class ParsingDemand {
   ParsingDemand({
     required this.libWindows,
     required this.libAndroid,
-    required this.libShared,
+    // required this.libShared,
     required this.rootIsolateToken,
     required this.promptPassed,
     required this.libLinux,
