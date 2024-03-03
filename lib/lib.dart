@@ -260,6 +260,7 @@ class Lib {
     required ParamsLlamaValuesOnly paramsLlamaValuesOnly,
   }) async {
     ByteData libAndroid = await rootBundle.load('assets/libs/libllama.so');
+    ByteData libShared = await rootBundle.load('assets/libs/libc++_shared.so');
     ByteData? libWindows;
     try {
       libWindows = await rootBundle.load('assets/libs/llama.dll');
@@ -282,6 +283,7 @@ class Lib {
         isolateSendPort?.send(ParsingDemand(
           libLinux: libLinux,
           libAndroid: libAndroid,
+          libShared: libShared,
           libWindows: libWindows,
           rootIsolateToken: token,
           promptPassed: promptPassed,
@@ -348,6 +350,21 @@ class Lib {
     BackgroundIsolateBinaryMessenger.ensureInitialized(
         parsingDemand.rootIsolateToken!);
 
+    DynamicLibrary libcxxShared = Platform.isAndroid
+    ? await loadDllAndroid("libc++.so", parsingDemand.libShared)
+    // : (Platform.isIOS
+    //     ? DynamicLibrary.executable()
+    //     : (Platform.isWindows
+    //         ? await loadDllWindows("libc++_shared.dll", parsingDemand.libWindows!)
+    //         : (Platform.isMacOS
+    //             ? DynamicLibrary.executable()
+    //             : (Platform.isLinux
+    //                 ? await loadDllWindows(
+    //                     "libc++_shared.so", parsingDemand.libLinux!)
+    //                 : DynamicLibrary.executable()))));
+    // ? DynamicLibrary.open("assets/libs/libc++_shared.so")
+    : DynamicLibrary.process();
+
     DynamicLibrary llama = Platform.isAndroid
         ? await loadDllAndroid("libllama.so", parsingDemand.libAndroid)
         : (Platform.isIOS
@@ -360,6 +377,8 @@ class Lib {
                         ? await loadDllWindows(
                             "libllama_linux.so", parsingDemand.libLinux!)
                         : DynamicLibrary.executable()))));
+
+
     var prompt = parsingDemand.promptPassed;
 
     log(
@@ -433,29 +452,34 @@ class Lib {
     gptParams.ref.use_mmap = true;
 
     var params = gptParams.ref;
-    log("main found : ${llama.providesSymbol('llama_context_default_params')}");
-
-    log("trying main");
+    log("llama_context_default_params found : ${llama.providesSymbol('llama_context_default_params')}");
+    log("llama_model_default_params found : ${llama.providesSymbol('llama_model_default_params')}");
 
     var ret = llamaBinded.llama_context_default_params();
-    log("trying main DONE $ret");
+    var model_params = llamaBinded.llama_model_default_params();
 
     ret.n_ctx = params.n_ctx;
-    ret.n_parts = params.n_parts;
+    // ret.n_parts = params.n_parts;
+    // ret.f16_kv = params.memory_f16;
     ret.seed = params.seed;
-    ret.f16_kv = params.memory_f16;
-    ret.use_mmap = params.use_mmap;
-    ret.use_mlock = params.use_mlock;
+    model_params.use_mmap = params.use_mmap;
+    model_params  .use_mlock = params.use_mlock;
 
+    log("trying main DONE $ret");
     var filePath = await ModelFilePath.getFilePath();
     print("filePath : $filePath");
     if (filePath == null) {
       log("no filePath");
       return;
     }
-
-    var ctx = llamaBinded.llama_init_from_file(
-        filePath.toNativeUtf8().cast<Char>(), ret);
+    log("loading model from file.");
+    var model = llamaBinded.llama_load_model_from_file(
+        filePath.toNativeUtf8().cast<Char>(), model_params);
+    log("model loaded !");
+    var ctx = llamaBinded.llama_new_context_with_model(
+        model, ret);
+    // var ctx = llamaBinded.llama_init_from_file(
+    //     filePath.toNativeUtf8().cast<Char>(), ret);
     // || ctx.cast<Int64>().value != 0
     if (ctx == nullptr) {
       log("context error : ${CreationContextError(ctx.cast<Int64>().value).toString()}");
@@ -463,7 +487,7 @@ class Lib {
       return;
     }
 
-    log("context created");
+    log("context created !");
 
     log(' test info  : ${(llamaBinded.llama_print_system_info()).cast<Utf8>().toDartString()}');
     var nbInt = 1;
@@ -472,6 +496,7 @@ class Lib {
     log(' ret eval  : ${llamaBinded.llama_eval(ctx, pointerInt, nbInt, 0, nbInt)}');
 
     var embd_inp = tokenize(llamaBinded, ctx, ' $prompt', true);
+    log('tokenize passed.');
     if (embd_inp.length < 0) {
       log("error embd_inp");
       return;
@@ -712,6 +737,7 @@ class MessageNewPrompt {
 
 class ParsingDemand {
   ByteData libAndroid;
+  ByteData libShared;
   ByteData? libWindows;
   ByteData? libLinux;
   RootIsolateToken? rootIsolateToken;
@@ -722,6 +748,7 @@ class ParsingDemand {
   ParsingDemand({
     required this.libWindows,
     required this.libAndroid,
+    required this.libShared,
     required this.rootIsolateToken,
     required this.promptPassed,
     required this.libLinux,
